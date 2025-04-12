@@ -12,7 +12,6 @@ const ShaderMap = std.AutoArrayHashMapUnmanaged(ShaderTag, rl.Shader);
 const ModelMap = std.AutoArrayHashMapUnmanaged(ModelTag, rl.Model);
 const ScheduleList = std.ArrayListUnmanaged(*const fn (*World) void);
 pub const World = struct {
-    main_camera: rl.Camera,
     registry: ecs.Registry,
     allocator: std.mem.Allocator,
     shaders: ShaderMap,
@@ -27,26 +26,14 @@ pub const World = struct {
     const ZERO_VEC: rl.Vector3 = .{ .x = 0, .y = 0, .z = 0 };
 
     pub fn init(allocator: std.mem.Allocator) !Self {
-        const camera = rl.Camera3D{ .position = .{ .x = 0, .y = 4, .z = -8 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .up = .{ .x = 0, .y = 1, .z = 0 }, .fovy = 45, .projection = .perspective };
         const registry = ecs.Registry.init(allocator);
         const shaders: ShaderMap = .empty;
         const models: ModelMap = .empty;
         const startup_schedule: ScheduleList = .empty;
         const update_schedule: ScheduleList = .empty;
         const draw_schedule: ScheduleList = .empty;
-        raylib_init();
 
-        return .{ .registry = registry, .allocator = allocator, .main_camera = camera, .shaders = shaders, .models = models, .startup_schedule = startup_schedule, .update_schedule = update_schedule, .draw_schedule = draw_schedule, .frame_time = 0 };
-    }
-
-    pub fn raylib_init() void {
-        var WINDOW_WIDTH: i32 = 1600;
-        var WINDOW_HEIGHT: i32 = 900;
-        rl.setConfigFlags(.{ .window_resizable = true });
-        rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "silver sniffle");
-        const monitor = rl.getCurrentMonitor();
-        WINDOW_WIDTH = rl.getMonitorWidth(monitor);
-        WINDOW_HEIGHT = rl.getMonitorHeight(monitor);
+        return .{ .registry = registry, .allocator = allocator, .shaders = shaders, .models = models, .startup_schedule = startup_schedule, .update_schedule = update_schedule, .draw_schedule = draw_schedule, .frame_time = 0 };
     }
 
     pub fn map_shaders(self: *Self) void {
@@ -118,14 +105,9 @@ pub const World = struct {
     }
 
     pub fn draw(self: *Self) void {
-        rl.beginDrawing();
-        self.main_camera.begin();
-        rl.clearBackground(rl.Color.dark_gray);
         for (self.draw_schedule.items) |system| {
             system(self);
         }
-        self.main_camera.end();
-        rl.endDrawing();
     }
 
     pub fn spawn(self: *Self, components: anytype) ecs.Entity {
