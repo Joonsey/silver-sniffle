@@ -1,32 +1,27 @@
+const std = @import("std");
 const rl = @import("raylib");
+const physics = @import("physics.zig");
+const rendering = @import("rendering.zig");
+const World = @import("world.zig").World;
 
 pub fn main() anyerror!void {
-    // Initialization
-    //--------------------------------------------------------------------------------------
-    const screenWidth = 800;
-    const screenHeight = 450;
+    var world = try World.init(std.heap.page_allocator);
+    defer world.deinit();
 
-    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
-    defer rl.closeWindow(); // Close window and OpenGL context
+    // Load Models
+    var player_model = try rl.loadModel("./assets/models/cheffy.glb");
 
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+    try world.store_model(.player, &player_model);
 
-    // Main game loop
-    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+    _ = world.spawn(.{ physics.Transform{ .translation = .{ .x = 3, .y = 0, .z = 0 } }, rendering.Model{ .model = &player_model } });
 
-        // Draw
-        //----------------------------------------------------------------------------------
-        rl.beginDrawing();
-        defer rl.endDrawing();
+    defer rl.closeWindow();
 
-        rl.clearBackground(.white);
+    rl.setTargetFPS(60);
 
-        rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
-        //----------------------------------------------------------------------------------
+    try world.startup();
+    while (!rl.windowShouldClose()) {
+        world.update();
+        world.draw();
     }
 }

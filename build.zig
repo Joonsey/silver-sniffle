@@ -40,17 +40,17 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
+    // Raylib
     const raylib = raylib_dep.module("raylib"); // main raylib module
     const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
-
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
+
+    // Ecs
+    const ecs_dependency = b.dependency("ecs", .{ .target = target, .optimize = optimize });
+    exe.root_module.addImport("ecs", ecs_dependency.module("zig-ecs"));
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
