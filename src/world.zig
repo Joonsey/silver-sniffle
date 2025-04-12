@@ -34,7 +34,16 @@ pub const World = struct {
         const update_schedule: ScheduleList = .empty;
         const draw_schedule: ScheduleList = .empty;
 
-        return .{ .registry = registry, .allocator = allocator, .shaders = shaders, .models = models, .startup_schedule = startup_schedule, .update_schedule = update_schedule, .draw_schedule = draw_schedule, .frame_time = 0 };
+        return .{
+            .registry = registry,
+            .allocator = allocator,
+            .shaders = shaders,
+            .models = models,
+            .startup_schedule = startup_schedule,
+            .update_schedule = update_schedule,
+            .draw_schedule = draw_schedule,
+            .frame_time = 0,
+        };
     }
 
     pub fn map_shaders(self: *Self) void {
