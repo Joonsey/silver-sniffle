@@ -8,7 +8,7 @@ pub fn main() anyerror!void {
     var world = try World.init(std.heap.page_allocator);
     defer world.deinit();
 
-    // Load Models
+    // in order to make refering to shaders and models less annoying, we store them in the world
     var player_model = try rl.loadModel("./assets/models/cheffy.glb");
 
     try world.store_model(.player, &player_model);
@@ -18,6 +18,10 @@ pub fn main() anyerror!void {
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
+
+    // To have a system run in the ecs world, register it, wondering if there is a better place for this code to live
+    try world.register_system(physics.dynamics, .update);
+    try world.register_system(rendering.draw_models, .draw);
 
     try world.startup();
     while (!rl.windowShouldClose()) {
