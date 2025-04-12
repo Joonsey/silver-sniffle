@@ -1,65 +1,48 @@
 const std = @import("std");
+const Build = std.Build;
+const OptimizeMode = std.builtin.OptimizeMode;
+const ResolvedTarget = Build.ResolvedTarget;
+const Dependency = Build.Dependency;
+const sokol = @import("sokol");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
-
     const optimize = b.standardOptimizeOption(.{});
 
-    const sokol_dep = b.dependency("sokol", .{
+    // note that the sokol dependency is built with `.with_sokol_imgui = true`
+    const dep_sokol = b.dependency("sokol", .{
+        .target = target,
+        .optimize = optimize,
+        .with_sokol_imgui = true,
+    });
+    const dep_cimgui = b.dependency("cimgui", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const cimgui_dep = b.dependency("cimgui", .{ .target = target, .optimize = optimize });
+    // inject the cimgui header search path into the sokol C library compile step
+    dep_sokol.artifact("sokol_clib").addIncludePath(dep_cimgui.path("src"));
 
-    const lib = b.addStaticLibrary(.{
-        .name = "silver-sniffle",
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    b.installArtifact(lib);
-
-    const exe_mod = b.createModule(.{
+    // main module with sokol and cimgui imports
+    const mod_main = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{ .{ .name = "sokol", .module = sokol_dep.module("sokol") }, .{ .name = "cimgui", .module = cimgui_dep.module("cimgui") } },
+        .imports = &.{
+            .{ .name = "sokol", .module = dep_sokol.module("sokol") },
+            .{ .name = "cimgui", .module = dep_cimgui.module("cimgui") },
+        },
     });
 
-    const exe = b.addExecutable(.{
-        .name = "silver-sniffle",
-        .root_module = exe_mod,
-        .optimize = optimize,
-    });
-
-    exe.root_module.addImport("sokol", sokol_dep.module("sokol"));
-    b.installArtifact(exe);
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+    // wasm is not supported, for now
+    if (target.result.cpu.arch.isWasm()) {
+        @panic("Unsupported build target");
+    } else {
+        const exe = b.addExecutable(.{
+            .name = "demo",
+            .root_module = mod_main,
+        });
+        b.installArtifact(exe);
+        b.step("run", "Run demo").dependOn(&b.addRunArtifact(exe).step);
     }
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-    const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-
-    const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
-    test_step.dependOn(&run_exe_unit_tests.step);
 }
