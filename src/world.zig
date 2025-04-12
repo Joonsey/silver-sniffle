@@ -1,6 +1,7 @@
 const std = @import("std");
 const ecs = @import("ecs");
 const rl = @import("raylib");
+const rg = @import("raygui");
 const rendering = @import("rendering.zig");
 const physics = @import("physics.zig");
 
@@ -54,6 +55,16 @@ pub const World = struct {
                 }
             }
         }
+    }
+
+    pub fn draw_dev_ui(_: *Self, start_padding: f32) f32 {
+        var local_padding: f32 = 20;
+        _ = rg.guiLabel(.{ .x = 10, .y = start_padding + local_padding, .width = 200, .height = 20 }, "world ui");
+
+        local_padding += 20;
+        _ = rg.guiLabel(.{ .x = 10, .y = start_padding + local_padding, .width = 200, .height = 20 }, "world ui 2");
+
+        return local_padding;
     }
 
     pub fn store_model(self: *Self, tag: ModelTag, model: *rl.Model) !void {
